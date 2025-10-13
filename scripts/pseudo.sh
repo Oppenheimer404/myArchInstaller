@@ -5,6 +5,7 @@
 # Stage 2: Post-Installation (after first boot)
 
 function pre_installation() {
+	
 	printf "Setting Keyboard Layout...\n"
 	# localectl list-keymaps
 	# loadkeys {selected-keymap}
@@ -26,23 +27,31 @@ function pre_installation() {
 		# do things here
 
 		connect_via_ethernet() {
+		
 			printf "Connecting to ethernet network...\n"
+		
 		}
 		connect_via_ethernet
 		
 		connect_via_wifi() {
+		
 			printf "Ensuring wireless interface is not blocked...\n"
 			# rfkill
+		
 			printf "Unblocking wireless interface if desired (soft-block only)...\n"
 			# rfkill unblock {selected-interface}
+		
 			printf "Connecting to wireless network...\n"
 			# iwctl
+		
 		}
 		connect_via_wifi
 
 		connect_via_broadband() {
+
 			printf "Connecting to broadband network...\n"
 			# mmcli
+		
 		}
 		connect_via_broadband
 	}
@@ -59,29 +68,98 @@ function pre_installation() {
 
 		printf "Starting UEFI partitioning...\n"
 		uefi_gpt_partitioning() {
+		
 			printf "Creating boot partition...\n"
 			# /dev/efi_system_partition (1GiB)
+		
 			printf "Creating swap partition...\n"
-			# /dev/swap_partition (4GiB min)
+			# /dev/swap_partition (4GiB min, Match to RAM Ideal)
+		
 			printf "Creating root partition...\n"
 			# /dev/root_partition (Remainder, 32GiB min)
+	
 		}
 		uefi_gpt_partitioning
 
 		printf "Starting BIOS partitioning...\n"
 		bios_mbr_partitioning() {
+
 			printf "Creating swap partition...\n"
-			# /dev/swap_partition (4GiB min)
+			# /dev/swap_partition (4GiB min, Match to RAM Ideal)
+		
 			printf "Creating root partition...\n"
 			# /dev/root_partition (Remainder, 32GiB min)
+		
 		}
 		bios_mbr_partitioning
+	
 	}
 	partitioning_disks
+
+	printf "Formatting disks...\n"
+	formatting_disks() {
+		
+		printf "Starting UEFI formatting...\n"
+		uefi_partition_formatting() {
+			
+			printf "Formatting boot partition..."
+			# mkfs.fat -F 32 /dev/efi_system_partition
+			
+			printf "Formatting swap partition..."
+			# mkswap /dev/swap_partition
+			
+			printf "Formatting root partition..."
+			# FILESYSTEM STUFF
+
+		}
+		uefi_partition_formatting
+		
+		printf "Starting BIOS formatting...\n"
+		bios_partition_formatting() {
+			
+			printf "Formatting swap partition..."
+			# mkswap /dev/swap_partition
+			
+			printf "Formatting root partition..."
+			# FILESYSTEM STUFF
+
+		}
+		bios_partition_formatting
+
+	}
+	formatting_disks
+
+	printf "Mounting UEFI partitions..."
+	mount_uefi_partitions() {
+	
+		printf "Mounting root partition..."
+		# mount /dev/root_partition /mnt
+		
+		printf "Mounting boot partition..."
+		# mount --mkdir /dev/boot_partition /mnt/boot
+	
+		printf "Enabling swap..."
+		# swapon /dev/swap_partition
+	
+	}
+
+	printf "Mounting BIOS partitions..."
+	mount_uefi_partitions() {
+	
+		printf "Mounting root partition..."
+		# mount /dev/root_partition /mnt
+		
+		printf "Enabling swap..."
+		# swapon /dev/swap_partition
+	
+	}
+
 }
 
 function main() {
+
 	pre_installation
+
 }
 
 main
