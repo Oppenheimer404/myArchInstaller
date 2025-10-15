@@ -17,7 +17,7 @@ msg_success() {
 }
 msg_warn() {
     printf "${YELLOW}[WARNING]${NC} %s\n" "$1" >&2
-    sleep 1
+    sleep 0.7
 }
 msg_error() {
     printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
@@ -26,26 +26,52 @@ msg_error() {
 msg_debug() {
     printf "${CYAN}[DEBUG]${NC} %s\n" "$1" >&2
 }
+msg_select() {
+    printf "${CYAN}[SELECT]${NC} %s\n" "$1" >&2
+}
 msg_prompt() {
     prompt="$1"
     shift
     options=("$@")
 
-    printf "${CYAN}[SELECT]${NC} %s\n" "$prompt" >&2
+    msg_select "$prompt"
 
     for i in "${!options[@]}"; do
         printf "  %d) %s\n" "$((i + 1))" "${options[$i]}" >&2
     done
 
     while true; do
-        printf "${BLUE}Enter selection (1-${#options[@]}):${NC} " >&2
+        msg_select "Enter selection (1-${#options[@]}): "
         read -r selection
         
         if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#options[@]}" ]; then
             printf "${options[$((selection - 1))]}\n"
             exit 0
         else
-            printf "${RED}[ERROR]${NC} Invalid selection ($selection) Please enter a number between 1 and ${#options[@]}\n" >&2
+            msg_error "Invalid selection ($selection) Please enter a number between 1 and ${#options[@]}"
         fi
+    done
+}
+msg_check() {
+    prompt="$1"
+    shift
+    user_selections=("$@")
+    msg_info "${prompt}"
+    while true; do
+        msg_select "Confirm y/n:"
+        read -r response
+        response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+        case "$response" in
+            y|yes)
+                msg_success "Confirmed selection(s): ${user_selections[$*]}"
+                return 0
+                ;;
+            n|no)
+                msg_warn "Cancelling"
+                return 1
+                ;;
+            *)
+                msg_error "Invalid response ($response) Please enter y/n or yes/no"
+        esac
     done
 }
