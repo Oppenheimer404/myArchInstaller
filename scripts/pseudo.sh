@@ -162,7 +162,7 @@ function setup_keyboard_terminal() {
 	msg_info "Checking avaliable keymaps..."
 	available_keymaps=()
 	
-	for keymap in us uk de fr dvorak colemak; do
+	for keymap in us uk test de fr dvorak colemak; do
     if localectl list-keymaps | grep -q "^${keymap}$"; then
 		msg_info "[$keymap] Keymap Installed"
 		available_keymaps+=("$keymap")
@@ -172,7 +172,8 @@ function setup_keyboard_terminal() {
 	done
 	
 	msg_success "Found ${#available_keymaps[@]} keymaps"
-	printf "Available keymaps: ${available_keymaps[@]}"
+	msg_info "Available keymaps: ${available_keymaps[*]}"
+	msg_success "Selected: $(msg_prompt "Select a keymap:" ${available_keymaps[@]})"
 
 	# loadkeys {selected-keymap}
 	
