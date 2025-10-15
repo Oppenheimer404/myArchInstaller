@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header String Generator</title>
+    <style>
+        body {
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #fff;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(50, 12px);
+            gap: 1px;
+            background: #2d2d2d;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 12px;
+            height: 12px;
+            background: #0a0a0a;
+        }
+        .cell.drawn {
+            background: #00ff00;
+        }
+        .cell.current {
+            background: #ff0000;
+            opacity: 0.7;
+        }
+        #output {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            width: 600px;
+            word-wrap: break-word;
+            margin: 10px 0;
+        }
+        #controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .status {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .pen-down { color: #00ff00; }
+        .pen-up { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <h1>Header String Generator</h1>
+    <div class="status">
+        Pen: <span id="penStatus" class="pen-up">UP</span> |
+        Position: (<span id="posX">0</span>, <span id="posY">0</span>)
+    </div>
+    <div id="grid"></div>
+    <div id="controls">
+        <strong>Controls:</strong><br>
+        Arrow Keys: Move | Spacebar: Toggle Pen | Backspace: Undo | C: Clear | Enter: Copy
+    </div>
+    <div id="output">U</div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const output = document.getElementById('output');
+        const penStatus = document.getElementById('penStatus');
+        const posX = document.getElementById('posX');
+        const posY = document.getElementById('posY');
+
+        let command = 'U';
+        let cells = [];
+
+        const WIDTH = 50;
+        const HEIGHT = 20;
+
+        // Create grid
+        for (let i = 0; i < HEIGHT * WIDTH; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            grid.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // Parse command string and rebuild grid
+        function parseAndRender() {
+            let x = 0, y = 0, pen = false;
+            let drawn = new Set();
+
+            for (let i = 0; i < command.length; i++) {
+                const c = command[i];
+
+                if (c === 'D') {
+                    pen = true;
+                    drawn.add(`${y},${x}`);
+                } else if (c === 'U') {
+                    pen = false;
+                } else if ('NESW'.includes(c)) {
+                    if (c === 'N' && y > 0) y--;
+                    if (c === 'S' && y < HEIGHT - 1) y++;
+                    if (c === 'E' && x < WIDTH - 1) x++;
+                    if (c === 'W' && x > 0) x--;
+
+                    if (pen) drawn.add(`${y},${x}`);
+                }
+            }
+
+            // Update grid display
+            cells.forEach((cell, i) => {
+                const cx = i % WIDTH;
+                const cy = Math.floor(i / WIDTH);
+                cell.className = 'cell';
+                if (drawn.has(`${cy},${cx}`)) cell.classList.add('drawn');
+                if (cx === x && cy === y) cell.classList.add('current');
+            });
+
+            // Update status
+            posX.textContent = x;
+            posY.textContent = y;
+            penStatus.textContent = pen ? 'DOWN' : 'UP';
+            penStatus.className = pen ? 'pen-down' : 'pen-up';
+            output.textContent = command;
+        }
+
+        function addCommand(cmd) {
+            command += cmd;
+            parseAndRender();
+        }
+
+        function undo() {
+            if (command.length > 1) {
+                command = command.slice(0, -1);
+                parseAndRender();
+            }
+        }
+
+        function clear() {
+            command = 'U';
+            parseAndRender();
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(command).then(() => {
+                const oldText = output.textContent;
+                output.textContent = 'Copied!';
+                setTimeout(() => output.textContent = oldText, 1000);
+            });
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') { e.preventDefault(); addCommand('N'); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); addCommand('S'); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); addCommand('E'); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); addCommand('W'); }
+            if (e.key === ' ') {
+                e.preventDefault();
+                // Parse command to find current pen state
+                let currentPen = false;
+                for (let i = 0; i < command.length; i++) {
+                    if (command[i] === 'D') currentPen = true;
+                    if (command[i] === 'U') currentPen = false;
+                }
+                addCommand(currentPen ? 'U' : 'D');
+            }
+            if (e.key === 'Backspace') { e.preventDefault(); undo(); }
+            if (e.key === 'c' || e.key === 'C') { clear(); }
+            if (e.key === 'Enter') { copyToClipboard(); }
+        });
+
+        parseAndRender();
+    </script>
+</body>
+</html>
