@@ -7,13 +7,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-msg_info() {
-    printf "${BLUE}[INFO]${NC} %s\n" "$1" >&2
-    sleep 0.1
-}
 msg_success() {
     printf "${GREEN}[SUCCESS]${NC} %s\n" "$1" >&2
     sleep 0.5
+    # sleep 1 && clear
 }
 msg_warn() {
     printf "${YELLOW}[WARNING]${NC} %s\n" "$1" >&2
@@ -22,6 +19,9 @@ msg_warn() {
 msg_error() {
     printf "${RED}[ERROR]${NC} %s\n" "$1" >&2
     sleep 1
+}
+msg_info() {
+    printf "${BLUE}[INFO]${NC} %s\n" "$1" >&2
 }
 msg_debug() {
     printf "${CYAN}[DEBUG]${NC} %s\n" "$1" >&2
@@ -33,17 +33,13 @@ msg_prompt() {
     prompt="$1"
     shift
     options=("$@")
-
-    msg_select "$prompt"
-
+    msg_select "$prompt:"
     for i in "${!options[@]}"; do
         printf "  %d) %s\n" "$((i + 1))" "${options[$i]}" >&2
     done
-
     while true; do
-        msg_select "Enter selection (1-${#options[@]}): "
+        msg_select "Enter selection: (1-${#options[@]})"
         read -r selection
-        
         if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#options[@]}" ]; then
             printf "${options[$((selection - 1))]}\n"
             exit 0
@@ -58,7 +54,7 @@ msg_check() {
     user_selections=("$@")
     msg_info "${prompt}"
     while true; do
-        msg_select "Confirm y/n:"
+        msg_select "Confirm: (y)Yes (n)No"
         read -r response
         response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
         case "$response" in
@@ -67,7 +63,7 @@ msg_check() {
                 return 0
                 ;;
             n|no)
-                msg_warn "Cancelling"
+                msg_warn "Cancelling..."
                 return 1
                 ;;
             *)
