@@ -1,19 +1,16 @@
 #! /usr/bin/env bash
 
-# Personal Arch Linux Installation Script - Pseudocode
-# Stage 1: Pre-Installation (from live boot enviroment)
-# Stage 2: Post-Installation (after first boot)
+source "$(dirname "$0")/format-msg.sh"
 
 function pre_installation() {
 	
-	printf "Setting Keyboard Layout...\n"
-	# localectl list-keymaps
-	# loadkeys {selected-keymap}
+	## ARCH INSTALL GUIDE 1.5  
+	# Set the console keyboard layout and font
+	setup_keyboard_terminal
 	
-	printf "Setting Console Font...\n"
-	# ls /usr/share/kbd/consolefonts/
-	# setfont {selected-font}
-	
+	## ARCH INSTALL GUIDE 1.6
+	# Verify the boot mode
+
 	printf "Verifing boot mode (64=64, 32=32, BIOS=No such file or directory)...\n"
 	# cat /sys/firmware/efi/fw_platform_size 
 
@@ -117,10 +114,10 @@ function pre_installation() {
 		printf "Starting BIOS formatting...\n"
 		bios_partition_formatting() {
 			
-			printf "Formatting swap partition..."
+			printf "Formatting swap partition...\n"
 			# mkswap /dev/swap_partition
 			
-			printf "Formatting root partition..."
+			printf "Formatting root partition..\n"
 			# FILESYSTEM STUFF
 
 		}
@@ -129,31 +126,60 @@ function pre_installation() {
 	}
 	formatting_disks
 
-	printf "Mounting UEFI partitions..."
+	printf "Mounting UEFI partitions...\n"
 	mount_uefi_partitions() {
 	
-		printf "Mounting root partition..."
+		printf "Mounting root partition...\n"
 		# mount /dev/root_partition /mnt
 		
-		printf "Mounting boot partition..."
+		printf "Mounting boot partition...\n"
 		# mount --mkdir /dev/boot_partition /mnt/boot
 	
-		printf "Enabling swap..."
+		printf "Enabling swap...\n"
 		# swapon /dev/swap_partition
 	
 	}
+	mount_uefi_partitions	
 
-	printf "Mounting BIOS partitions..."
-	mount_uefi_partitions() {
+	printf "Mounting BIOS partitions...\n"
+	mount_bios_partitions() {
 	
-		printf "Mounting root partition..."
+		printf "Mounting root partition...\n"
 		# mount /dev/root_partition /mnt
 		
-		printf "Enabling swap..."
+		printf "Enabling swap...\n"
 		# swapon /dev/swap_partition
 	
 	}
+	mount_bios_partitions	
 
+}
+
+function setup_keyboard_terminal() {
+
+	
+	# Check available keymaps
+	msg_info "Checking avaliable keymaps..."
+	available_keymaps=()
+	
+	for keymap in us uk de fr dvorak colemak; do
+    if localectl list-keymaps | grep -q "^${keymap}$"; then
+		msg_info "[$keymap] Keymap Installed"
+		available_keymaps+=("$keymap")
+    else
+		msg_warn "$keymap Not Installed"
+    fi
+	done
+	
+	msg_success "Found ${#available_keymaps[@]} keymaps"
+	printf "Available keymaps: ${available_keymaps[@]}"
+
+	# loadkeys {selected-keymap}
+	
+	printf "Setting Console Font...\n"
+	# ls /usr/share/kbd/consolefonts/
+	# setfont {selected-font}
+	
 }
 
 function main() {
