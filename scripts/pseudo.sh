@@ -22,15 +22,28 @@ function header() {
                         W) ((x--,x<x1)) && x1=$x ;;
                     esac
                     ((p)) && d["$y,$x"]=1
+                    
+                    # Only animate when pen is down
+                    if ((p)); then
+                        clear
+                        for ((py=y1; py<=y2; py++)); do
+                            for ((px=x1; px<=x2; px++)); do
+                                [[ ${d["$py,$px"]} ]] && printf "█" || printf " "
+                            done
+                            printf "\n"
+                        done
+                        sleep 0.05
+                    fi
                 done
                 ;;
         esac
     done
     
-    printf "\n"
-    for ((y=y1; y<=y2; y++)); do
-        for ((x=x1; x<=x2; x++)); do
-            [[ ${d["$y,$x"]} ]] && printf "█" || printf " "
+    # Final display
+    clear
+    for ((py=y1; py<=y2; py++)); do
+        for ((px=x1; px<=x2; px++)); do
+            [[ ${d["$py,$px"]} ]] && printf "█" || printf " "
         done
         printf "\n"
     done
@@ -241,7 +254,7 @@ function configure_keyboard_layout() {
 
 function main() {
 
-	header "UESDSSEENNWUEEESDUSEEDNNEESSWU"
+	header "UESEEDEUESDUENDEEEEUESDUENDEUSEDUSEDSSSWUNWDUNWDSSSSUSWDUSWDWWWWUNWDUNWDNNNNUSWDUSWDWNNNUENDUESEESEESESSSSDNWUEEDUWWWNNNSDNUEEEESDNU"
 
 	pre_installation
 
