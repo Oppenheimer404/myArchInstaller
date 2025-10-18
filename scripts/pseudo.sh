@@ -213,12 +213,15 @@ function configure_keyboard_layout() {
 
 function main() {
 
+	if msg_check "Do you want to update the header?" "y"; then
+		mapfile -t txt_files < <(cd "$ROOT_DIR" && find . -name "*.txt" | sed 's|^\./||')
+		selected_file=$(msg_prompt "Select a text file" "${txt_files[@]}")
+		msg_debug "Selected $selected_file"
+		header_string=$(generate_header "$ROOT_DIR/$selected_file")
+		COMPRESSED_HEADER="$header_string"
+		printf "$COMPRESSED_HEADER" > "$ROOT_DIR/header/h.enc"
+	fi
 
-	header_string=$(generate_header "$ROOT_DIR/header/header.txt")
-	COMPRESSED_HEADER="$header_string"
-	# Save
-	printf "$COMPRESSED_HEADER" > "$ROOT_DIR/header/h.enc"
-	
 	print_header "$ROOT_DIR/header/h.enc"
 	
 	pre_installation
