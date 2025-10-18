@@ -1,58 +1,16 @@
 #! /usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+export ROOT_DIR
 
-source "$(dirname "$0")/format-msg.sh"
+COMPRESSED_HEADER=''
 
-function header() {
-    declare -A d
-    local x=0 y=0 p=0 x1=0 x2=0 y1=0 y2=4
-    
-    for ((i=0; i<${#1}; i++)); do
-        c="${1:$i:1}"
-        case "$c" in
-            D) p=1; d["$y,$x"]=1 ;;
-            U) p=0 ;;
-            N|E|S|W)
-                n="${1:$((i+1)):1}"
-                [[ "$n" =~ [0-9] ]] && { r=$n; ((i++)); } || r=1
-                for ((j=0; j<r; j++)); do
-                    case "$c" in
-                        N) ((y--,y<y1)) && y1=$y ;;
-                        S) ((y++,y>y2)) && y2=$y ;;
-                        E) ((x++,x>x2)) && x2=$x ;;
-                        W) ((x--,x<x1)) && x1=$x ;;
-                    esac
-                    ((p)) && d["$y,$x"]=1
-                    
-                    # Only animate when pen is down
-                    if ((p)); then
-                        clear
-                        for ((py=y1; py<=y2; py++)); do
-                            for ((px=x1; px<=x2; px++)); do
-                                [[ ${d["$py,$px"]} ]] && printf "█" || printf " "
-                            done
-                            printf "\n"
-                        done
-                        sleep 0.05
-                    fi
-                done
-                ;;
-        esac
-    done
-    
-    # Final display
-    clear
-    for ((py=y1; py<=y2; py++)); do
-        for ((px=x1; px<=x2; px++)); do
-            [[ ${d["$py,$px"]} ]] && printf "█" || printf " "
-        done
-        printf "\n"
-    done
-    printf "\n"
-}
+source "$ROOT_DIR/scripts/format-msg.sh"
+source "$ROOT_DIR/scripts/format-header.sh"
 
 function pre_installation() {
 
-	if msg_check "Configure keyboard layout?"; then
+	if msg_check "Configure keyboard layout?" "y"; then
 		configure_keyboard_layout
 	else
 		msg_info "Skipping..."
@@ -208,8 +166,9 @@ function configure_keyboard_layout() {
 	check_keymaps() {
 		msg_debug "Checking avaliable keymaps..."
 
-		common_keymaps=("us" "uk" "test" "de" "fr" "dvorak" "colemak")
+		local common_keymaps=("us" "uk" "test" "de" "fr" "dvorak" "colemak")
 		available_keymaps=() # create an empty array to fill with avaliable keymaps
+		local keymap
 		for keymap in ${common_keymaps[@]}; do # for all specified keymaps
 			if localectl list-keymaps | grep -q "^${keymap}$"; then # list all keymaps and pipe into grep
 				msg_debug "[$keymap] Keymap Installed" # inform user keymap is installed
@@ -254,11 +213,15 @@ function configure_keyboard_layout() {
 
 function main() {
 
-	header "UESEEDEUESDUENDEEEEUESDUENDEUSEDUSEDSSSWUNWDUNWDSSSSUSWDUSWDWWWWUNWDUNWDNNNNUSWDUSWDWNNNUENDUESEESEESESSSSDNWUEEDUWWWNNNSDNUEEEESDNU"
 
+	header_string=$(generate_header "$ROOT_DIR/header/header.txt")
+	COMPRESSED_HEADER="$header_string"
+	# Save
+	printf "$COMPRESSED_HEADER" > "$ROOT_DIR/header/h.enc"
+	
+	print_header "$ROOT_DIR/header/h.enc"
+	
 	pre_installation
-
-
 }
 
 main
