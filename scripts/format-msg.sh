@@ -65,7 +65,7 @@ msg_check() {
                 return 0
                 ;;
             n|no)
-                msg_warn "Cancelling..."
+                msg_select "Confirmed selection: n"
                 return 1
                 ;;
             *)
