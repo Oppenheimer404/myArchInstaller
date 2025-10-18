@@ -30,9 +30,10 @@ msg_select() {
     printf "${CYAN}[SELECT]${NC} %s\n" "$1" >&2
 }
 msg_prompt() {
-    prompt="$1"
+    local prompt="$1"
     shift
-    options=("$@")
+    local options=("$@")
+    local i selection
     msg_select "$prompt:"
     for i in "${!options[@]}"; do
         printf "  %d) %s\n" "$((i + 1))" "${options[$i]}" >&2
@@ -49,9 +50,10 @@ msg_prompt() {
     done
 }
 msg_check() {
-    prompt="$1"
+    local prompt="$1"
     shift
-    user_selections=("$@")
+    local user_selections=("$@")
+    local response
     msg_info "${prompt}"
     while true; do
         msg_select "Confirm: (y)Yes (n)No"
@@ -59,7 +61,7 @@ msg_check() {
         response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
         case "$response" in
             y|yes)
-                msg_success "Confirmed selection(s): ${user_selections[$*]}"
+                msg_success "Confirmed selection(s): $*"
                 return 0
                 ;;
             n|no)
