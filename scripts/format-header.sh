@@ -26,6 +26,9 @@ function print_header() {
     local compressed_file="$1"
     local header_string=$(cat "$compressed_file" | base64 -d | gunzip)
     
+    tput civis
+    trap 'tput cnorm' RETURN
+
     # Only replace @ when it's:
     # 1. Alone on a line (@\n)
     # 2. Followed by whitespace and a digit (@ 0.5 or @0.5)
@@ -37,7 +40,6 @@ function print_header() {
     mapfile -td $'\x1E' parts < <(printf '%s' "$processed")
     
     local last_delay=""
-    
     for part in "${parts[@]}"; do
         [[ -z "$part" ]] && continue
         
