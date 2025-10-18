@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$0")/format-msg.sh"
+source "$ROOT_DIR/scripts/format-msg.sh"
 
 function generate_header() {
     local input_file="$1"
@@ -23,8 +23,8 @@ function generate_header() {
 }
 
 function print_header() {
-    local compressed_string="$1"
-    local header_string=$(printf '%s' "$compressed_string" | base64 -d | gunzip)
+    local compressed_file="$1"
+    local header_string=$(cat "$compressed_file" | base64 -d | gunzip)
     
     # Only replace @ when it's:
     # 1. Alone on a line (@\n)
