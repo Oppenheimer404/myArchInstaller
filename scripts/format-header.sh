@@ -2,7 +2,38 @@
 
 source "$ROOT_DIR/scripts/format-msg.sh"
 
+function update_header() {
+    msg_check "Do you want to update the header?" "y"
+	local response=$?
+	case $response in
+		0)
+		mapfile -t txt_files < <(cd "$ROOT_DIR" && find . -name "*.txt" | sed 's|^\./||')
+		local selected_file=$(msg_prompt "Select a text file" "${txt_files[@]}")
+		msg_debug "Selected $selected_file"
+		local header_string=$(generate_header "$ROOT_DIR/$selected_file")
+		local compressed_header="$header_string"
+		printf "$compressed_header" > "$ROOT_DIR/header/h.enc"
+		msg_success "Header updated!"
+		msg_debug "Compressed header saved to $ROOT_DIR/header/h.enc"
+        ;;
+		1)
+		msg_info "Skipping..."
+		return 0
+        ;;
+		2)
+		msg_warn "Cancelling..."
+		# TODO: Add soft cancel
+		return 1
+        ;;
+		*)
+		msg_error "Unknown response from msg_check"
+		return 1
+        ;;
+	esac
+}
+
 function generate_header() {
+    
     local input_file="$1"
     if [[ ! -f "$input_file" ]]; then
         msg_error "File not found!"
@@ -20,6 +51,7 @@ function generate_header() {
     msg_debug "Ratio:      $(( (compressed_length * 100) / original_length ))%"
     
     printf "$compressed_string"
+    return 0
 }
 
 function print_header() {
