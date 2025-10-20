@@ -30,21 +30,27 @@ msg_select() {
     printf "${CYAN}[SELECT]${NC} %s\n" "$1" >&2
 }
 msg_prompt() {
-    local prompt="$1"
-    shift
-    local options=("$@")
-    local i selection
-    msg_select "$prompt:"
+    
+    # ? Displays the specified prompt to the user via `[SELECT]: $prompt`
+    local prompt="$1" # * First argument is stored as prompt 
+    msg_select "$prompt:" # * Display with special formatting
+    shift # ! Discard prompt from array of possible selections
+
+    # ? Store the remainder of values as an array of strings and display to the user
+    local options=("$@") # * Array of options to be displayed in order (1, 2, 3, ...)
+    local i selection # ! Keep iterator local
     for i in "${!options[@]}"; do
         printf "  %d) %s\n" "$((i + 1))" "${options[$i]}" >&2
     done
     while true; do
+        # TODO: Handle lists which are too long using multiple pages (> next page < previous page)
         msg_select "Enter selection: (1-${#options[@]})"
         read -r selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#options[@]}" ]; then
             printf "${options[$((selection - 1))]}\n"
             return 0
         else
+            # TODO: Handle default selection value
             msg_error "Invalid selection ($selection) Please enter a number between 1 and ${#options[@]}"
         fi
     done
@@ -56,7 +62,7 @@ msg_check() {
     local response
     msg_info "${prompt}"
     while true; do
-        msg_select "Confirm: (y)Yes (n)No"
+        msg_select "Confirm: (y)Yes (n)No (c)Cancel"
         read -r response
         response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
         case "$response" in
@@ -67,6 +73,11 @@ msg_check() {
             n|no)
                 msg_select "Confirmed selection: n"
                 return 1
+                ;;
+            c|cancel)
+                msg_select "Confirmed selection: c"
+                msg_warn "Cancelling..."
+                return 2
                 ;;
             *)
                 msg_error "Invalid response ($response) Please enter y/n or yes/no"
