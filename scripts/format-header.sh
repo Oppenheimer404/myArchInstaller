@@ -1,61 +1,56 @@
 #!/usr/bin/env bash
 
+# TODO: Handle ROOT_DIR if ran as standalone script
+
 # * Source message formatting script
 source "$ROOT_DIR/scripts/format-msg.sh"
 
 # * Prompts user to select a text file to send to generate_header()
-    # ? return 2 (ERROR)
-    # ! if an unknown response is thrown from msg_check in update_header
-    # ! if an unknown response is thrown from msg_check in generate_header
-    # ! if compression issues occur
-    # ! if compression results in an empty string
-    # ? return 1 (WARNING)
-    # ! if no text files are found
-    # ! if user selects c or cancel
-    # ! if the file passed to generate_header doesn't exist
-    # ! if the file passed to generate_header is empty
-    # ? return 0 (SUCCESS)
-    # * if user selects n or no to skip updating the header
-    # ? return generate_header
-        # ? return 2
-        # ? return 1
-        # ? return 0
-
+    # * [0x00]  (SUCCESS)   return 0    if user selects n or no to skip updating the header
+    # ! [0x01]  (EXIT)      return 1    if user selects c or cancel [0x00]
+    # ! [0x02]  (ERROR)     return 2    if an unknown response is thrown from msg_check in update_header
+    # ! [0x03]  (EXIT)      return 1    if no text files are found
+    # ? [0x04]  (CASE)      return ?    pass users selected file to generate_header()
+    # ! [0x05]  (EXIT)      return 1    if the file passed to generate_header doesn't exist
+    # TODO: Finish this shit
+    # ! (ERROR)     if an unknown response is thrown from msg_check in generate_header
+    # ! (ERROR)     if compression issues occur
+    # ! (ERROR)     if compression results in an empty string
+    # ! (EXIT)      if the file passed to generate_header is empty
+    # * [0x??]  (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
+# *
 function update_header() {
     msg_check "Would you like to update the header?" "y"
 	local response=$?
 	case $response in
 		0)
         # ? Y|Yes
-        :
+        : # * User has confirmed they would like to update header
         ;;
 		1)
         # ? N|No
-        # * Skipping header update prompt returns 0
 		msg_debug "Skipping..."
-		return 0
+		return 0 # * [0x00] User has skipped operation
         ;;
         2)
         # ? C|Cancel
-        # ! Cancelling returns 1
-		return 1
+		return 1 # ! [0x01] User has cancelled operation
         ;;
         *)
         # ? Unknown Value
-        # ! (ERROR) Broken function in format-msg.sh
 		msg_error "Unknown response from msg_check in update_header: $response"
-		return 2
+		return 2 # ! [0x02] Broken function in format-msg.sh
         ;;
 	esac
 
     # * Search for text files in chosen directory
     mapfile -t txt_files < <(cd "$ROOT_DIR" && find . -name "*.txt" | sed 's|^\./||')
 
-    # ! Inform the user and return error code if no text files exist 
+    # * Validate the list of existing text files includes at least one file  
     if [[ ${#txt_files[@]} -lt 1 ]]; then
         msg_warn "No text files found within [$ROOT_DIR]!"
         msg_warn "Cancelling..."
-        return 1
+        return 1 # ! [0x03] No text files exist
     fi
     
     # * Prompt user to select from available text files
@@ -65,17 +60,17 @@ function update_header() {
     
     # * Attempt to generate header from text file
     generate_header "$ROOT_DIR/$selected_file"
-    return $?
+    return $? # ? [0x04] generate_header()
         
 }
 
 function generate_header() {
     
-    # ! Inform user and return error code if file does not exist
+    # * Set input file and ensure it exists
     local input_file="$1"
     if [[ ! -f "$input_file" ]]; then
         msg_warn "File not found: $input_file"
-        return 1
+        return 1 # ! [0x05] file does not exist
     fi
     
     # * Double check the selected header file
@@ -83,11 +78,12 @@ function generate_header() {
     local response=$?
     case $response in
         0)
-        :
+        : # * Secondary confirmation has been passed 
         ;;
         1)
         # ? N|No
         update_header
+        # TODO: Recursive code
         return 0
         ;;
         2)
