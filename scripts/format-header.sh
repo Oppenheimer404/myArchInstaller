@@ -52,7 +52,7 @@ function update_header() {
     mapfile -t txt_files < <(cd "$ROOT_DIR" && find . -name "*.txt" | sed 's|^\./||')
 
     # ! Inform the user and return error code if no text files exist 
-    if [[${#txt_files[@]} -lt 1]]; then
+    if [[ ${#txt_files[@]} -lt 1 ]]; then
         msg_warn "No text files found within [$ROOT_DIR]!"
         msg_warn "Cancelling..."
         return 1
@@ -124,6 +124,7 @@ function generate_header() {
         # ! (ERROR) Compression issues in `cat "$input_file" | gzip | base64 -w0`
         msg_error "Compression pipeline failed: $exit_code"
         return 2
+    fi
 
     # * Check compressed length and inform user
     local compressed_length=${#compressed_string}
@@ -131,7 +132,7 @@ function generate_header() {
     msg_debug "Ratio: $(( (compressed_length * 100) / original_length ))%"
 
     # ! Checking for empty compression output        
-    elif [[ -z "$compressed_string" ]]; then
+    if [[ -z "$compressed_string" ]]; then
         # ! (ERROR) Compression issues in `cat "$input_file" | gzip | base64 -w0`
         msg_error "Compression produced empty output: $input_file >> $compressed_string"
         return 2
@@ -140,8 +141,8 @@ function generate_header() {
     # * Save compressed file as `h.enc`
     msg_debug "Saving compressed file: $input_file >> h.enc"
     printf '%s' "$compressed_string" > "$ROOT_DIR/header/h.enc"
-    msg_success "Header updated!"
     msg_debug "Compressed header saved to $ROOT_DIR/header/h.enc"
+    msg_success "Header updated!"
     return 0
 
 }
