@@ -3,23 +3,95 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 export ROOT_DIR
 
-COMPRESSED_HEADER=''
-
 source "$ROOT_DIR/scripts/format-msg.sh"
 source "$ROOT_DIR/scripts/format-header.sh"
 
-function pre_installation() {
+# COMMENT STYLES
+# * Highlight
+# ! Warning
+# ? Question
+# TODO: Task
+#// CODE
 
-	if msg_check "Configure keyboard layout?" "y"; then
-		configure_keyboard_layout
-	else
-		msg_info "Skipping..."
-	fi
+function configure_keyboard_layout() {
 	
-	printf "Verifing boot mode (64=64, 32=32, BIOS=No such file or directory)...\n"
+	check_keymaps() {
+		msg_debug "Checking available keymaps..."
+		# ? Check for common keymaps first to save time and display nicely
+		local common_keymaps=("us" "uk" "de" "fr" "dvorak" "colemak")
+		# local common_keymaps=("us" "uk" "test" "de" "fr" "dvorak" "colemak") # ! (TEST) Variable for missing [test] keymap
+		# local common_keymaps=("test") # ! (TEST) Variable for missing common keymaps
+		
+		# ? Loop through common keymaps to determine which are available (installed)
+		local keymap
+		available_keymaps=()
+		for keymap in ${common_keymaps[@]}; do
+			if localectl list-keymaps | grep -q "^${keymap}$"; then
+				msg_debug "[$keymap] Keymap installed"
+				available_keymaps+=("$keymap") # * Add installed keymaps to available keymaps
+			else
+				msg_warn "[$keymap] Keymap not installed" # ! (WARNING) Missing common keymap file
+			fi
+		done
+
+		if [[ ${#available_keymaps[@]} -gt 0 ]]; then
+			msg_success "Found ${#available_keymaps[@]} keymaps"
+			return
+		else
+			msg_error "Common keymap files not found!" # ! (ERROR) Missing all common keymap files
+			exit 1
+		fi
+	}
+	check_keymaps
+
+	select_keymap() {
+		msg_info "Available keymaps: [${available_keymaps[*]}]" # list
+		
+		selected_keymap=$(msg_prompt "Select a keymap" ${available_keymaps[@]}) # select
+		msg_check "Selected: [$selected_keymap] keymap" "$selected_keymap"
+		local response=$?
+		case $response in
+			0)
+			# * Yes
+			# TODO: Load the user's selected keymap
+			# ? loadkeys $selected_keymap
+			msg_debug "Continue"
+			return
+			;;
+			1)
+			# ! No
+			select_keymap
+			;;
+			2)
+			# ! Cancel
+			msg_warn "Cancelling..."
+			# TODO: Add soft cancel
+			;;
+			*)
+			# ! Return value unknown
+			msg_error "unexpected response from msg_check in select_keymap"
+			;;
+		esac
+	}
+	select_keymap # run function
+	
+	
+}
+
+function pre_installation() {
+	
+	printf "Setting console font...\n"
+	# TODO: Set console font
+		# TODO: List available console fonts
+		# ? ls /usr/share/kbd/consolefonts/
+		# TODO: Allow user to select console font
+		# TODO: Set the user's selected console font
+		# ? setfont $selected_font
+
+	printf "Verifying boot mode (64=64, 32=32, BIOS=No such file or directory)...\n"
 	# cat /sys/firmware/efi/fw_platform_size 
 
-	printf "Connectng to the internet...\n"
+	printf "Connecting to the internet...\n"
 	connecting_to_the_internet() {
 		
 		printf "Ensuring network interface is listed and enabled...\n"
@@ -160,71 +232,31 @@ function pre_installation() {
 
 }
 
-function configure_keyboard_layout() {
-	
-	# function to create an array of installed keymaps
-	check_keymaps() {
-		msg_debug "Checking avaliable keymaps..."
-
-		local common_keymaps=("us" "uk" "test" "de" "fr" "dvorak" "colemak")
-		available_keymaps=() # create an empty array to fill with avaliable keymaps
-		local keymap
-		for keymap in ${common_keymaps[@]}; do # for all specified keymaps
-			if localectl list-keymaps | grep -q "^${keymap}$"; then # list all keymaps and pipe into grep
-				msg_debug "[$keymap] Keymap Installed" # inform user keymap is installed
-				available_keymaps+=("$keymap") # add installed keymap(s) to array
-			else
-				msg_warn "[$keymap] Keymap Not Installed" # warn user keymap is not installed
-			fi
-		done
-
-		if [[ ${#available_keymaps[@]} -gt 0 ]]; then
-			msg_success "Found ${#available_keymaps[@]} keymaps"
-			return
-		else
-			msg_error "No keymaps found. Exiting..."
-			exit 1
-		fi
-	}
-	check_keymaps # run function
-
-	select_keymap() {
-		# display the array of avaliable keymaps
-		msg_info "Available keymaps: [${available_keymaps[*]}]" # list
-		
-		# prompt user to select from avaliable keymaps
-		selected_keymap=$(msg_prompt "Select a keymap" ${available_keymaps[@]}) # select
-		if msg_check "Selected: [$selected_keymap] keymap" "$selected_keymap"; then
-			msg_debug "A"
-			return
-		else
-			select_keymap
-		fi
-	}
-	select_keymap # run function
-
-	# loadkeys {selected-keymap}
-	
-	printf "Setting Console Font...\n"
-	# ls /usr/share/kbd/consolefonts/
-	# setfont {selected-font}
-	
-}
-
 function main() {
 
-	if msg_check "Do you want to update the header?" "y"; then
-		mapfile -t txt_files < <(cd "$ROOT_DIR" && find . -name "*.txt" | sed 's|^\./||')
-		selected_file=$(msg_prompt "Select a text file" "${txt_files[@]}")
-		msg_debug "Selected $selected_file"
-		header_string=$(generate_header "$ROOT_DIR/$selected_file")
-		COMPRESSED_HEADER="$header_string"
-		printf "$COMPRESSED_HEADER" > "$ROOT_DIR/header/h.enc"
-	fi
-
+	# * These are external functions from format-header.sh 
 	print_header "$ROOT_DIR/header/h.enc"
+	update_header # ? This function allows a user to provide their own header animation file
+	# *
 	
-	pre_installation
+	msg_check "Configure keyboard layout?" "y"
+	local r=$?
+	case $r in
+		0)
+		configure_keyboard_layout
+		;;
+		1)
+		msg_debug "Skipping..."
+		;;
+		2)
+		exit 0
+		;;
+		*)
+		msg_error "unexpected return from msg_check in pre_installation"
+		;;
+	esac
+	
+	#//pre_installation
 }
 
 main
