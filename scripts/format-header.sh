@@ -6,19 +6,24 @@
 source "$ROOT_DIR/scripts/format-msg.sh"
 
 # * Prompts user to select a text file to send to generate_header()
-    # * [0x00]  (SUCCESS)   return 0    if user selects n or no to skip updating the header
-    # ! [0x01]  (EXIT)      return 1    if user selects c or cancel [0x00]
-    # ! [0x02]  (ERROR)     return 2    if an unknown response is thrown from msg_check in update_header
-    # ! [0x03]  (EXIT)      return 1    if no text files are found
-    # ? [0x04]  (CASE)      return ?    pass users selected file to generate_header()
-    # ! [0x05]  (EXIT)      return 1    if the file passed to generate_header doesn't exist
-    # TODO: Finish this shit
-    # ! (ERROR)     if an unknown response is thrown from msg_check in generate_header
-    # ! (ERROR)     if compression issues occur
-    # ! (ERROR)     if compression results in an empty string
-    # ! (EXIT)      if the file passed to generate_header is empty
-    # * [0x??]  (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
+    # * :update_header() < [0x06]
+        # * [0x00]      (SUCCESS)   return 0    if user selects n or no to skip updating the header
+        # ! [0x01]      (EXIT)      return 1    if user selects c or cancel to cancel the operation
+        # ! [0x02]      (ERROR)     return 2    if an unknown response is thrown from msg_check in update_header
+        # ! [0x03]      (EXIT)      return 1    if no text files are found for header generation
+        # ? [0x04]      (CASE)      return ?    pass users selected file to generate_header()
+            # * :generate_header()
+            # ! [0x05]  (EXIT)      return 1        if the file passed to generate_header doesn't exist
+            # * [0x06]  (RETRY)     return 0        if the user selects n or no to confirming the header file > :update_header()
+            # ! [0x07]  (EXIT)      return 1        if user selects c or cancel to cancel the operation
+            # ! [0x08]  (ERROR)     return 2        if an unknown response is thrown from msg_check in generate_header
+            # ! [0x09]  (EXIT)      return 1        if the file passed to generate_header is empty
+            # TODO: A little bit more of this
+            # ! (ERROR)     if compression issues occur
+            # ! (ERROR)     if compression results in an empty string
+            # * [0x??]      (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
 # *
+
 function update_header() {
     msg_check "Would you like to update the header?" "y"
 	local response=$?
@@ -70,7 +75,7 @@ function generate_header() {
     local input_file="$1"
     if [[ ! -f "$input_file" ]]; then
         msg_warn "File not found: $input_file"
-        return 1 # ! [0x05] file does not exist
+        return 1 # ! [0x05] File does not exist
     fi
     
     # * Double check the selected header file
@@ -83,18 +88,16 @@ function generate_header() {
         1)
         # ? N|No
         update_header
-        # TODO: Recursive code
-        return 0
+        return 0 # * [0x06] User has selected no to confirming header file
         ;;
         2)
         # ? C|Cancel
-        return 1
+        return 1 # ! [0x07] User has cancelled operation
         ;;
         *)
         # ? Unknown Value
-        # ! (ERROR) Broken function in format-msg.sh 
         msg_error "Unexpected response from msg_check in generate_header: $response"
-        return 2
+        return 2 # ! [0x08] Broken function in format-msg.sh
         ;;
     esac
 
@@ -104,10 +107,9 @@ function generate_header() {
     local original_length=${#original_string}
     msg_debug "Original: $original_length chars"
     
-    # ! Inform user and return error code if input file is empty
     if [[ $original_length -eq 0 ]]; then
         msg_warn "Input file is empty"
-        return 1
+        return 1 # ! [0x09] Input file is empty
     fi
     
     # * Attempt to compress header file
@@ -185,5 +187,4 @@ function print_header() {
             printf '%s\n\n' "${part#$'\n'}"
         fi
     done
-
 }
