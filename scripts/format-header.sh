@@ -18,10 +18,9 @@ source "$ROOT_DIR/scripts/format-msg.sh"
             # ! [0x07]  (EXIT)      return 1        if user selects c or cancel to cancel the operation
             # ! [0x08]  (ERROR)     return 2        if an unknown response is thrown from msg_check in generate_header
             # ! [0x09]  (EXIT)      return 1        if the file passed to generate_header is empty
-            # TODO: A little bit more of this
-            # ! (ERROR)     if compression issues occur
-            # ! (ERROR)     if compression results in an empty string
-            # * [0x??]      (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
+            # ! [0x10]  (ERROR)     return 2        if compression issues occur
+            # ! [0x11]  (ERROR)     return 2        if compression results in an empty string
+            # * [0x12]      (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
 # *
 
 function update_header() {
@@ -83,7 +82,7 @@ function generate_header() {
     local response=$?
     case $response in
         0)
-        : # * Secondary confirmation has been passed 
+        : # * Secondary confirmation has been passed
         ;;
         1)
         # ? N|No
@@ -107,33 +106,28 @@ function generate_header() {
     local original_length=${#original_string}
     msg_debug "Original: $original_length chars"
     
+    # * Validate that input file contains text to generate header from
     if [[ $original_length -eq 0 ]]; then
         msg_warn "Input file is empty"
         return 1 # ! [0x09] Input file is empty
     fi
     
-    # * Attempt to compress header file
+    # * Attempt to compress header file and check for any pipeline errors
     msg_debug "Compressing: $input_file"
     local compressed_string=$(set -o pipefail; cat "$input_file" | gzip | base64 -w0)
     local exit_code=$?
-
-    # ! Checking for direct compression
     if [[ $exit_code -ne 0 ]]; then
-        # ! (ERROR) Compression issues in `cat "$input_file" | gzip | base64 -w0`
         msg_error "Compression pipeline failed: $exit_code"
-        return 2
+        return 2 # ! [0x10] Compression issues in `cat "$input_file" | gzip | base64 -w0`
     fi
 
-    # * Check compressed length and inform user
+    # * Check compressed length and ensure compression string exists
     local compressed_length=${#compressed_string}
     msg_debug "Compressed: $compressed_length chars"
     msg_debug "Ratio: $(( (compressed_length * 100) / original_length ))%"
-
-    # ! Checking for empty compression output        
     if [[ -z "$compressed_string" ]]; then
-        # ! (ERROR) Compression issues in `cat "$input_file" | gzip | base64 -w0`
         msg_error "Compression produced empty output: $input_file >> $compressed_string"
-        return 2
+        return 2 # ! [0x11] Compression pipeline lead to an empty string output
     fi
 
     # * Save compressed file as `h.enc`
@@ -141,7 +135,7 @@ function generate_header() {
     printf '%s' "$compressed_string" > "$ROOT_DIR/header/h.enc"
     msg_debug "Compressed header saved to $ROOT_DIR/header/h.enc"
     msg_success "Header updated!"
-    return 0
+    return 0 # * [0x12] Successfully saved header file to h.enc
 
 }
 
