@@ -20,7 +20,7 @@ source "$ROOT_DIR/scripts/format-msg.sh"
             # ! [0x09]  (EXIT)      return 1        if the file passed to generate_header is empty
             # ! [0x10]  (ERROR)     return 2        if compression issues occur
             # ! [0x11]  (ERROR)     return 2        if compression results in an empty string
-            # * [0x12]      (SUCCESS)   return 0    if the compressed file is properly saved to h.enc
+            # * [0x12]  (SUCCESS)   return 0        if the compressed file is properly saved to h.enc
 # *
 
 function update_header() {
