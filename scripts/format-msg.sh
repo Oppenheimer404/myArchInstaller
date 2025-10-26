@@ -62,7 +62,7 @@ msg_check() {
     local response
     msg_info "${prompt}"
     while true; do
-        msg_select "Confirm: (y)Yes (n)No (c)Cancel"
+        msg_select "(y)Yes (n)No (c)Cancel"
         read -r response
         response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
         case "$response" in
