@@ -150,13 +150,13 @@ function print_header() {
 
     local header_string=$(cat "$compressed_file" | base64 -d | gunzip)
     
+    # * Hide users cursor for the duration of the animation
     tput civis
     trap 'tput cnorm' RETURN
 
-    # Only replace @ when it's:
-    # 1. Alone on a line (@\n)
-    # 2. Followed by whitespace and a digit (@ 0.5 or @0.5)
-    # Everything else stays as literal @
+    # ? Only replace @ when it's:
+    # *     Alone on a line (@\n) && Followed by whitespace and a digit (@ 0.5 or @0.5)
+    # !     Everything else stays as literal @
     local processed=$(printf '%s' "$header_string" | \
         sed ':a;N;$!ba;s/\n@\n/\x1E\n/g;s/\n@\([[:space:]]*[0-9]\)/\x1E\1/g')
     
