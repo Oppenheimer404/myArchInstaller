@@ -191,6 +191,38 @@ function backup_prerequisites() {
 
 function confirm_prerequisites() {
 
+    local folder_name=""
+    while true; do
+        msg_check "Would you like to name your backup directory?" "y"
+        local response=$?
+        case $response in
+            0)
+            msg_info "Please select a name for your directory:"
+            read -r folder_name
+            # * Continue to verify user selected directory
+            ;;
+            1)
+            break # * Continue in selected directory
+            ;;
+            2)
+            return 1 # ! User has cancelled script
+            ;;
+            *)
+            return 2 # ! Unexpected response from msg_check 
+            ;;
+        esac
+
+        if [[ ! "$folder_name" =~ ^[a-zA-Z0-9_.-]+$ ]] || [[ "$folder_name" =~ ^\.\.?$ ]]; then
+            msg_warn "Invalid directory name (use letters, numbers, hyphens, underscores, dots)"
+            continue # ! Loop early
+        fi
+
+        # * Only a success should reach this
+        local folder_name="/$folder_name"
+        break
+    done
+    SELECTED_DIRECTORY+="$folder_name"
+
     msg_info "Backup directory: $TIMESHIFT_SOURCE"
     msg_info "Backup to: $SELECTED_DIRECTORY"
     msg_info "Required space: $TIMESHIFT_SIZE_H"
