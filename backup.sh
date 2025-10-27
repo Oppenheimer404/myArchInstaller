@@ -5,11 +5,10 @@ export ROOT_DIR
 
 source "$ROOT_DIR/scripts/format-msg.sh"
 
-TIMESHIFT_SOURCE="/timeshift"
-
 function timeshift_prerequisites() {
 
     # * Verify default timeshift location is ok with user
+    TIMESHIFT_SOURCE="/timeshift"
     msg_info "Default timeshift source: $TIMESHIFT_SOURCE"
     msg_check "Would you like to use the default source?" "$TIMESHIFT_SOURCE"
     local response=$?
