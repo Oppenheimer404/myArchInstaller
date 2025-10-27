@@ -110,18 +110,49 @@ function storage_prerequisites() {
     # * Validate there is enough room within selected directory to continue    
     msg_debug "Checking available space in: $SELECTED_DIRECTORY"
     local available_space=$(df --output=avail -B1 "$SELECTED_DIRECTORY" | tail -1)
-    local available_space_h=$(df --output=avail -h "$SELECTED_DIRECTORY" | tail -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    AVAILABLE_SPACE_H=$(df --output=avail -h "$SELECTED_DIRECTORY" | tail -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    msg_debug "Required space: $TIMESHIFT_SIZE_H"
     if [ "$TIMESHIFT_SIZE" -gt "$available_space" ]; then
-        msg_warn "Required space: $TIMESHIFT_SIZE_H"
-        msg_warn "Available space: $available_space_h"
+        msg_warn "Available space: $AVAILABLE_SPACE_H"
         msg_error "Not enough space in selected drive"
         return 1 # ! storage requirements not met
     fi
-    
+    msg_success "Available space: $AVAILABLE_SPACE_H"
+
+    return 0 # * SELECTED_DIRECTORY & AVAILABLE_SPACE_H are now set
+}
+
+function confirm_prerequisites() {
+
+    msg_info "Backup directory: $TIMESHIFT_SOURCE"
+    msg_info "Backup to: $SELECTED_DIRECTORY"
     msg_info "Required space: $TIMESHIFT_SIZE_H"
-    msg_info "Available space: $available_space_h"
-    
+    msg_info "Available space: $AVAILABLE_SPACE_H"
+    msg_warn "Final check! Verify the above information!"
+
+    msg_check "Would you like to continue?" "y"
+    local response=$?
+    case $response in
+        0)
+        : # * Continue
+        ;;
+        1)
+        backup_prerequisites || return 1
+        confirm_prerequisites  # * Recursively call to ask again
+        return $?
+        ;;
+        2)
+        return 1 # ! Canceling
+        ;;
+        *)
+        return 2 # ! Unexpected response from msg_check
+        ;;
+    esac
+
+    # TODO: Select output directory name
+
     return 0
+
 }
 
 function backup_prerequisites() {
@@ -131,6 +162,23 @@ function backup_prerequisites() {
         msg_error "Please run as root (use sudo)"
         return 1 # ! this script requires sudo to work
     fi    
+
+    msg_check "Would you like to backup your timeshift directory?" "y"
+    local response=$?
+    case $response in
+        0)
+        : # * Continuing
+        ;;
+        1)
+        return 1 # ! Canceling
+        ;;
+        2)
+        return 1 # ! Exiting (Canceling)
+        ;;
+        *)
+        return 2 # ! Unexpected response from msg_check
+        ;;
+    esac
 
     timeshift_prerequisites
     local response=$?
@@ -182,7 +230,6 @@ function main() {
         0)
         # * Continuing
         msg_debug "All prerequisites have been met"
-        msg_info "Continuing..."
         ;;
         1)
         msg_warn "Exiting..."
@@ -193,7 +240,11 @@ function main() {
         return 2
         ;;
     esac
+
+    confirm_prerequisites
     
+    # TODO: Backup files
+
 }
 
 main
