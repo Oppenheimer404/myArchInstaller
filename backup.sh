@@ -20,7 +20,7 @@ function timeshift_prerequisites() {
         ;;
         1)
         # ? n|no
-        msg_info "Please select a new source directory"
+        msg_info "Please select a new source directory:"
         printf "New Source Location > "
         read -r TIMESHIFT_SOURCE
         msg_info "Selected: $TIMESHIFT_SOURCE"
@@ -193,16 +193,17 @@ function confirm_prerequisites() {
 
     local folder_name=""
     while true; do
-        msg_check "Would you like to name your backup directory?" "y"
+        msg_check "Would you like to use the default directory? >> /$(basename "$TIMESHIFT_SOURCE")" "/$(basename "$TIMESHIFT_SOURCE")"
         local response=$?
         case $response in
             0)
+            local folder_name="/$(basename "$TIMESHIFT_SOURCE")"
+            break # * Continue in selected directory
+            ;;
+            1)
             msg_info "Please select a name for your directory:"
             read -r folder_name
             # * Continue to verify user selected directory
-            ;;
-            1)
-            break # * Continue in selected directory
             ;;
             2)
             return 1 # ! User has cancelled script
@@ -250,6 +251,43 @@ function confirm_prerequisites() {
 
 }
 
+function start_backup() {
+    msg_debug "Beginning backup process..."
+    
+    local continue_backup=1
+    local response=0
+    
+    if [ -d "$SELECTED_DIRECTORY" ]; then
+        msg_warn "Destination folder already exists!"
+        msg_warn "$SELECTED_DIRECTORY >> $SELECTED_DIRECTORY"
+        msg_check "Do you want to overwrite/sync?" "y"
+        local response=$?
+    fi
+
+    if [[ $response -ne 0 ]]; then
+        continue_backup=0
+    fi
+
+    if [ -d "$SELECTED_DIRECTORY" ] && [[ $continue_backup -eq 1 ]]; then
+        msg_warn "This will overwrite files!"
+        msg_check "Are you sure?" "y"
+        local response=$?
+    fi
+
+    if [[ $response -ne 0 ]]; then
+        continue_backup=0
+    fi
+    
+    if [[ $continue_backup -eq 0 ]]; then
+        msg_warn "Cancelling..."
+        return 1
+    fi
+    
+    msg_info "Starting backup..."
+    
+    return 0
+}
+
 function main() {
 
     while true; do
@@ -277,8 +315,7 @@ function main() {
         local response=$?
         case $response in
             0)
-            msg_debug "Continuing..."
-            break
+            break # * User has confirmed selection > Exit the loop
             ;;
             1)
             TIMESHIFT_SOURCE=""
@@ -303,7 +340,21 @@ function main() {
         esac
     done
 
-    # TODO: Backup files
+    start_backup
+    local response=$?
+    case $response in
+        0)
+        : # * Backup has succeeded and we can continue
+        ;;
+        1)
+        msg_error "Backup process has failed!"
+        return 1 # ! Error thrown during backup
+        ;;
+        *)
+        msg_error "Unexpected return value from start_backup"
+        return 2 # ! Unexpected return from start_backup
+        ;;
+    esac
 
 }
 
