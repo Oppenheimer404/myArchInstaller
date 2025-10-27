@@ -283,8 +283,13 @@ function start_backup() {
         return 1
     fi
     
+    mkdir -p "$SELECTED_DIRECTORY"
+    msg_debug "Created directory: $SELECTED_DIRECTORY"
+    msg_warn "This may take a while depending on the size of your snapshots!"
     msg_info "Starting backup..."
-    
+    rsync -aAXH --info=progress2,stats2 "$TIMESHIFT_SOURCE/" "$SELECTED_DIRECTORY/"
+    msg_info "Backup complete"
+
     return 0
 }
 
