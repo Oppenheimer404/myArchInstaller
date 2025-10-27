@@ -253,6 +253,9 @@ function confirm_prerequisites() {
 function main() {
 
     while true; do
+        
+        clear
+        
         backup_prerequisites
         local response=$?
         case $response in
