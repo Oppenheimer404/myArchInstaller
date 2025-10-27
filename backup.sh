@@ -122,39 +122,6 @@ function storage_prerequisites() {
     return 0 # * SELECTED_DIRECTORY & AVAILABLE_SPACE_H are now set
 }
 
-function confirm_prerequisites() {
-
-    msg_info "Backup directory: $TIMESHIFT_SOURCE"
-    msg_info "Backup to: $SELECTED_DIRECTORY"
-    msg_info "Required space: $TIMESHIFT_SIZE_H"
-    msg_info "Available space: $AVAILABLE_SPACE_H"
-    msg_warn "Final check! Verify the above information!"
-
-    msg_check "Would you like to continue?" "y"
-    local response=$?
-    case $response in
-        0)
-        : # * Continue
-        ;;
-        1)
-        backup_prerequisites || return 1
-        confirm_prerequisites  # * Recursively call to ask again
-        return $?
-        ;;
-        2)
-        return 1 # ! Canceling
-        ;;
-        *)
-        return 2 # ! Unexpected response from msg_check
-        ;;
-    esac
-
-    # TODO: Select output directory name
-
-    return 0
-
-}
-
 function backup_prerequisites() {
 
     # * Verify that user script was executed with root permissions
@@ -222,27 +189,85 @@ function backup_prerequisites() {
 
 }
 
-function main() {
+function confirm_prerequisites() {
 
-    backup_prerequisites
+    msg_info "Backup directory: $TIMESHIFT_SOURCE"
+    msg_info "Backup to: $SELECTED_DIRECTORY"
+    msg_info "Required space: $TIMESHIFT_SIZE_H"
+    msg_info "Available space: $AVAILABLE_SPACE_H"
+    msg_warn "Final check! Verify the above information!"
+
+    msg_check "Would you like to continue?" "y"
     local response=$?
     case $response in
         0)
-        # * Continuing
-        msg_debug "All prerequisites have been met"
+        : # * Continue
         ;;
         1)
-        msg_warn "Exiting..."
-        return 1
+        return 1 # ! Retry
+        ;;
+        2)
+        return 2 # ! Exit
         ;;
         *)
-        msg_error "Unexpected response from backup_prerequisites"
-        return 2
+        return 3 # ! Unexpected response from msg_check
         ;;
     esac
 
-    confirm_prerequisites
-    
+    return 0
+
+}
+
+function main() {
+
+    while true; do
+        backup_prerequisites
+        local response=$?
+        case $response in
+            0)
+            # * Continuing
+            msg_debug "All prerequisites have been met"
+            ;;
+            1)
+            msg_warn "Exiting..."
+            return 1
+            ;;
+            *)
+            msg_error "Unexpected response from backup_prerequisites"
+            return 2
+            ;;
+        esac
+
+        confirm_prerequisites
+        local response=$?
+        case $response in
+            0)
+            msg_debug "Continuing..."
+            break
+            ;;
+            1)
+            TIMESHIFT_SOURCE=""
+            msg_debug "Source directory forgotten"
+            TIMESHIFT_SIZE=""
+            msg_debug "Source size reset"
+            SELECTED_DIRECTORY=""
+            msg_debug "Backup directory forgotten"
+            AVAILABLE_SPACE_H=""
+            msg_debug "Available space reset"
+            msg_warn "Retrying..."
+            continue
+            ;;
+            2)
+            msg_warn "Exiting..."
+            return 1
+            ;;
+            *)
+            msg_error "Unexpected response from confirm_prerequisites"
+            return 2
+            ;;
+        esac
+    done
+
     # TODO: Backup files
 
 }
