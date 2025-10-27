@@ -242,7 +242,7 @@ function confirm_prerequisites() {
         return 2 # ! Exit
         ;;
         *)
-        return 3 # ! Unexpected response from msg_check
+        return 2 # ! Unexpected response from msg_check
         ;;
     esac
 
