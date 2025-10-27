@@ -48,6 +48,7 @@ msg_prompt() {
         read -r selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#options[@]}" ]; then
             printf "${options[$((selection - 1))]}\n"
+            msg_success "Confirmed selection: ${options[$((selection - 1))]}"
             return 0
         else
             # TODO: Handle default selection value
